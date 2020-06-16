@@ -121,17 +121,21 @@ class Login extends React.Component {
       hasError: true,
     });
 
-    const response = await callApi(
-      'post',
-      '/user/login',
-      {
-        data: Data,
-        headers: {
-          Authorization: ls.get('token'),
-        },
-      },
-    );
-    ls.set('token', response.data);
+    // const response = await callApi(
+    //   'post',
+    //   '/user/login',
+    //   {
+    //     data: Data,
+    //     headers: {
+    //       Authorization: ls.get('token'),
+    //     },
+    //   },
+    // );
+
+    const { loginUser } = this.props;
+    const { email, password } = Data;
+    const response = await loginUser({ variables: { email, password } });
+    ls.set('token', response.data.loginUser);
 
     this.setState({ loading: false });
 
@@ -257,6 +261,7 @@ class Login extends React.Component {
 
 Login.propTypes = {
   classes: PropTypes.objectOf(PropTypes.string).isRequired,
+
 };
 
 export default withStyles(useStyles)(Login);
