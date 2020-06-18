@@ -1,5 +1,6 @@
 import React, { Component, Fragment } from 'react';
-import ls from 'local-storage';
+import { graphql } from '@apollo/react-hoc';
+import Compose from 'lodash.flowright';
 import Button from '@material-ui/core/Button';
 import EditIcon from '@material-ui/icons/Edit';
 import DeleteIcon from '@material-ui/icons/Delete';
@@ -13,8 +14,8 @@ import { TableContainer } from '../../components/index';
 import getDateFormatted from './helper';
 import EditDialog from '../../components/EditDialog/EditDialog';
 import RemoveDialog from '../../components/RemoveDialog/RemoveDialog';
-import callApi from '../../lib/utils/api';
-
+import { MyContext } from '../../contexts';
+import { GET_TRAINEE } from './query';
 
 const useStyles = (theme) => ({
   root: {
@@ -38,31 +39,28 @@ class Trainee extends Component {
       deleteData: {},
       page: 0,
       rowsPerPage: 10,
-      rowData: [],
-      loading: false,
-      count: 0,
-      message: '',
+      // rowData: [],
+      // loading: false,
+      // count: 0,
+      // message: '',
 
     };
   }
 
-
-  componentDidMount = () => {
-    this.handleTable(0);
-  }
-
+  // componentDidMount = () => {
+  //   this.handleTable(0);
+  // }
 
   openDialog = (status) => {
     this.setState({ open: status });
   };
-
 
   onSubmit = () => {
     const { page } = this.state;
     this.setState({ open: false }, () => { this.handleTable(page); });
   };
 
-  handleSort = (field) => (event) => {
+  handleSort = (field) => () => {
     const { order } = this.state;
     this.setState({
       orderBy: field,
@@ -71,39 +69,15 @@ class Trainee extends Component {
     });
   }
 
-  handleTable = (newPage) => {
-    this.setState({ loading: true });
+  handleTable = (refetch) => async (event, newPage) => {
     const { rowsPerPage } = this.state;
-    const value = this.context;
-    callApi(
-      'get',
-      '/trainee',
-      {
-        params: { skip: newPage * rowsPerPage, limit: rowsPerPage },
-        headers: {
-          Authorization: ls.get('token'),
-        },
-      },
-    ).then((res) => {
-      if (res.data === undefined) {
-        this.setState({
-          loading: false,
-          message: 'This is an error',
-        }, () => {
-          const { message } = this.state;
-          value.openSnackBar(message, 'error');
-        });
-      } else {
-        this.setState({ rowData: res.data.records, count: res.data.count, loading: false });
-      }
-    });
+    await refetch({ skip: newPage * rowsPerPage, limit: rowsPerPage });
+    this.setState({ page: newPage });
   }
-
 
   openDialog = (status) => {
     this.setState({ open: status });
   }
-
 
   handleEditDialogOpen = (data) => {
     this.setState({ EditOpen: true, edata: data });
@@ -120,36 +94,35 @@ class Trainee extends Component {
     this.setState({ EditOpen: false }, () => { this.handleTable(page); });
   };
 
-  handleDeleteClick = (data) => {
-    const { count, page, rowsPerPage } = this.state;
-    this.setState({ RemoveOpen: false }, () => console.log('Deleted data', data));
-    if (count - rowsPerPage * page !== 1) {
-      this.handleTable(page);
+  handleDeleteClick = (refetch) => () => {
+    const { page, rowsPerPage } = this.state;
+    const {
+      data: {
+        getTrainee: { count = 0 } = {},
+      },
+    } = this.props;
+    this.setState({
+      RemoveOpen: false,
+    });
+    if (count - page * rowsPerPage !== 1) {
+      refetch({ skip: page * rowsPerPage, limit: rowsPerPage });
     } else if (page !== 0) {
-      this.handleTable(page - 1);
-      this.setState({ page: page - 1 });
+      refetch({ skip: (page - 1) * rowsPerPage, limit: rowsPerPage });
     } else {
-      this.handleTable(page);
+      refetch({ skip: page * rowsPerPage, limit: rowsPerPage });
     }
   };
 
-  // handleChangeRowsPerPage = (event) => {
-  //   this.handleTable();
-  //   this.setState({
-  //     rowsPerPage: event.target.value,
-  //     page: 0,
-
-  //   });
-  // };
-
+  handleClose = (status) => {
+    this.setState({ EditOpen: status, RemoveOpen: status });
+  };
 
   handleChangePage = (event, newPage) => {
-    console.log("newPage", newPage);
+    // console.log('newPage', newPage);
     this.handleTable(newPage);
     this.setState({
       page: newPage,
     });
-
   };
 
   handleChangeRowsPerPage = (event) => {
@@ -160,17 +133,23 @@ class Trainee extends Component {
     });
   };
 
-
   render() {
     const {
       open, order, orderBy, EditOpen, RemoveOpen, page,
-      rowsPerPage, edata, deleteData, loading, count, rowData,
+      rowsPerPage, edata, deleteData,
     } = this.state;
 
     // console.log("inside traineelist");
     // console.log("state", loading);
 
-    const { classes } = this.props;
+    const {
+      classes,
+      data: {
+        getTrainee: { records = [], count = 0 } = {},
+        refetch,
+        loading,
+      },
+    } = this.props;
 
     return (
       <>
@@ -187,14 +166,16 @@ class Trainee extends Component {
         />
         <RemoveDialog
           data={deleteData}
-          onClose={this.handleDeleteClick}
-          onSubmit={this.handleDeleteClick}
+          // onClose={this.handleDeleteClick}
+          onClose={() => this.handleClose(false)}
+          // onSubmit={this.handleDeleteClick}
+          onSubmit={this.handleDeleteClick(refetch)}
           open={RemoveOpen}
         />
         {/* <TableComponent */}
         <TableContainer
           loading={loading}
-          data={rowData}
+          data={records}
           columns={
             [
               {
@@ -236,7 +217,8 @@ class Trainee extends Component {
           page={page}
           rowsPerPage={rowsPerPage}
           onChangeRowsPerPage={this.handleChangeRowsPerPage}
-          onChangePage={this.handleChangePage}
+          // onChangePage={this.handleChangePage}
+          onChangePage={this.handleTable(refetch)}
         />
         <AddDialog
           onClose={() => this.openDialog(false)}
@@ -261,6 +243,15 @@ class Trainee extends Component {
 
 Trainee.propTypes = {
   classes: PropTypes.objectOf(PropTypes.string).isRequired,
+  data: PropTypes.objectOf(PropTypes.any).isRequired,
 };
 
-export default withStyles(useStyles)(Trainee);
+Trainee.contextType = MyContext;
+export default Compose(
+  withStyles(useStyles),
+  graphql(GET_TRAINEE, {
+    options: {
+      variables: { skip: 0, limit: 10 },
+    },
+  }),
+)(Trainee);

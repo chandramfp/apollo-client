@@ -16,13 +16,11 @@ import VisibilityOffIcon from '@material-ui/icons/VisibilityOff';
 import LockOutlinedIcon from '@material-ui/icons/LockOutlined';
 import { withStyles } from '@material-ui/core/styles';
 
-
 import { Redirect } from 'react-router-dom';
 import ls from 'local-storage';
 
 import callApi from '../../lib/utils/api';
 import { MyContext } from '../../contexts/index';
-
 
 const schema = yup.object().shape({
   email: yup.string().email()
@@ -102,7 +100,6 @@ class Login extends React.Component {
     this.setState({ touched: { ...touched, [field]: true } });
   }
 
-
   getError = (field) => {
     const { touched } = this.state;
     if (touched[field] && this.hasErrors()) {
@@ -162,7 +159,6 @@ class Login extends React.Component {
       return <Redirect to="/Trainee" />;
     }
   }
-
 
   formReset = () => {
     this.setState({
@@ -257,7 +253,6 @@ class Login extends React.Component {
     );
   }
 }
-
 
 Login.propTypes = {
   classes: PropTypes.objectOf(PropTypes.string).isRequired,
