@@ -10,10 +10,10 @@ import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 import TableSortLabel from '@material-ui/core/TableSortLabel';
 import PropTypes from 'prop-types';
+import CircularProgress from '@material-ui/core/CircularProgress';
 import Box from '@material-ui/core/Box';
 
 import withLoaderandMessage from '../HOC/index';
-
 
 const StyledTableCell = withStyles((theme) => ({
   head: {
@@ -33,18 +33,16 @@ const StyledTableRow = withStyles((theme) => ({
   },
 }))(TableRow);
 
-
 const useStyles = makeStyles({
   table: {
     minWidth: 700,
   },
 });
 
-
 function CustomizedTables(props) {
   const {
     id, data, columns, onSelect, order, orderBy, onSort, actions, rowsPerPage,
-    page, onChangePage, onChangeRowsPerPage, count,
+    page, onChangePage, onChangeRowsPerPage, count, loading,
   } = props;
 
   // console.log("inside Tableee");
@@ -73,28 +71,42 @@ function CustomizedTables(props) {
           </TableRow>
         </TableHead>
         <TableBody>
-          {data.length ? (
+          {data.length || loading ? (
             <>
-              {data.map((element) => (
-                <StyledTableRow hover key={element[id]}>
+              {loading ? (
+                <TableRow>
+                  <TableCell align="center" colSpan={4}>
+                    <div align="center">
+                      <CircularProgress />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                <>
                   {
-                    columns && columns.length && columns.map(({ field, align, format }) => (
+                    data.map((element) => (
+                      <StyledTableRow hover key={element[id]}>
+                        {
+                          columns && columns.length && columns.map(({ field, align, format }) => (
 
-                      <StyledTableCell onClick={(event) => onSelect(event, element.name)} align={align} component="th" scope="row">
-                        {format !== undefined ? format(element[field]) : element[field]}
-                      </StyledTableCell>
+                            <StyledTableCell onClick={(event) => onSelect(event, element.name)} align={align} component="th" scope="row">
+                              {format !== undefined ? format(element[field]) : element[field]}
+                            </StyledTableCell>
 
+                          ))
+                        }
+                        <div>
+                          {actions && actions.length && actions.map(({ icon, handler }) => (
+                            <div onClick={() => handler(element)}>
+                              {icon}
+                            </div>
+                          ))}
+                        </div>
+                      </StyledTableRow>
                     ))
                   }
-                  <div>
-                    {actions && actions.length && actions.map(({ icon, handler }) => (
-                      <div onClick={() => handler(element)}>
-                        {icon}
-                      </div>
-                    ))}
-                  </div>
-                </StyledTableRow>
-              ))}
+                </>
+              )}
             </>
           ) : (
             <Box paddingLeft="70%">
@@ -119,7 +131,6 @@ function CustomizedTables(props) {
   );
 }
 
-
 CustomizedTables.propTypes = {
   // id: PropTypes.string.isRequired,
   id: PropTypes.string,
@@ -135,8 +146,8 @@ CustomizedTables.propTypes = {
   onChangePage: PropTypes.func.isRequired,
   onChangeRowsPerPage: PropTypes.func.isRequired,
   count: PropTypes.number.isRequired,
+  loading: PropTypes.bool.isRequired,
 };
-
 
 CustomizedTables.defaultProps = {
   orderBy: '',
