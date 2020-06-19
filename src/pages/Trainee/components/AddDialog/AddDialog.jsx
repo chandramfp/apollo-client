@@ -11,7 +11,7 @@ import {
   DialogTitle,
   InputAdornment,
 } from '@material-ui/core';
-import ls from 'local-storage';
+// import ls from 'local-storage';
 import PersonIcon from '@material-ui/icons/Person';
 import EmailIcon from '@material-ui/icons/Email';
 import VisibilityOffIcon from '@material-ui/icons/VisibilityOff';
@@ -19,9 +19,8 @@ import { withStyles } from '@material-ui/core/styles';
 import Grid from '@material-ui/core/Grid';
 import CircularProgress from '@material-ui/core/CircularProgress';
 
-import { MyContext } from '../../../../contexts/index';
-import callApi from '../../../../lib/utils/api';
-
+// import { MyContext } from '../../../../contexts/index';
+// import callApi from '../../../../lib/utils/api';
 
 const schema = yup.object().shape({
   name: yup.string().required('Name is required field').min(3, 'minimum 3 character').label('name'),
@@ -60,11 +59,10 @@ class AddDialog extends React.Component {
         confirmpassword: false,
       },
       isValid: false,
-      loading: false,
-      message: '',
+      // loading: false,
+      // message: '',
     };
   }
-
 
   handlerOnChangeNameField = (e) => {
     this.setState({ name: e.target.value });
@@ -96,7 +94,6 @@ class AddDialog extends React.Component {
     this.setState({ touched: { ...touched, [field]: true } });
   }
 
-
   getError = (field) => {
     const { touched } = this.state;
     if (touched[field] && this.hasErrors()) {
@@ -117,41 +114,41 @@ class AddDialog extends React.Component {
   //   this.setState = '';
   // }
 
-  apiHandler = async (Data, openSnackBar) => {
-    this.setState({
-      loading: true,
-      hasError: true,
-    });
+  // apiHandler = async (Data, openSnackBar) => {
+  //   this.setState({
+  //     loading: true,
+  //     hasError: true,
+  //   });
 
-    const response = await callApi(
-      'post',
-      '/trainee',
-      {
-        data: Data,
-        headers: {
-          Authorization: ls.get('token'),
-        },
-      },
-    );
-    this.setState({ loading: false, hasError: false });
-    if (response.status === 'ok') {
-      this.setState({
-        hasError: false,
-        message: 'This is a success message',
-      }, () => {
-        const { message } = this.state;
-        openSnackBar(message, 'success');
-      });
-    } else {
-      this.setState({
-        hasError: false,
-        message: 'This is a error message',
-      }, () => {
-        const { message } = this.state;
-        openSnackBar(message, 'error');
-      });
-    }
-  }
+  //   const response = await callApi(
+  //     'post',
+  //     '/trainee',
+  //     {
+  //       data: Data,
+  //       headers: {
+  //         Authorization: ls.get('token'),
+  //       },
+  //     },
+  //   );
+  //   this.setState({ loading: false, hasError: false });
+  //   if (response.status === 'ok') {
+  //     this.setState({
+  //       hasError: false,
+  //       message: 'This is a success message',
+  //     }, () => {
+  //       const { message } = this.state;
+  //       openSnackBar(message, 'success');
+  //     });
+  //   } else {
+  //     this.setState({
+  //       hasError: false,
+  //       message: 'This is a error message',
+  //     }, () => {
+  //       const { message } = this.state;
+  //       openSnackBar(message, 'error');
+  //     });
+  //   }
+  // }
 
   formReset = () => {
     this.setState({
@@ -164,12 +161,13 @@ class AddDialog extends React.Component {
     });
   }
 
-
   render() {
     // console.log('current state', this.state);
-    const { open, onClose, onSubmit } = this.props;
     const {
-      name, email, password, confirmpassword, isValid, loading,
+      open, onClose, onSubmit, loading: { loading },
+    } = this.props;
+    const {
+      name, email, password, confirmpassword, isValid,
     } = this.state;
     return (
       <>
@@ -268,33 +266,33 @@ class AddDialog extends React.Component {
               <Button onClick={onClose} color="primary">
                 Cancel
               </Button>
-              <MyContext.Consumer>
+              {/* <MyContext.Consumer>
                 {({ openSnackBar }) => (
-                  <>
-                    <Button
-                      disabled={!isValid && this.hasErrors()}
-                      onClick={() => {
-                        onSubmit()({
-                          name, email, password, confirmpassword,
-                        });
+                  <> */}
+              <Button
+                disabled={!isValid && this.hasErrors()}
+                onClick={() => {
+                  onSubmit({
+                    name, email, password, confirmpassword,
+                  });
 
-                        this.apiHandler({ name, email, password }, openSnackBar);
-                        this.formReset();
-                      }}
-                      color="primary"
-                      variant="contained"
-                    >
+                  // this.apiHandler({ name, email, password }, openSnackBar);
+                  this.formReset();
+                }}
+                color="primary"
+                variant="contained"
+              >
 
-                      {loading && (
-                        <CircularProgress size={15} />
-                      )}
-                      {loading && <span>Submiting</span>}
-                      {!loading && <span>Submit</span>}
-                    </Button>
-
-                  </>
+                {loading && (
+                  <CircularProgress size={15} />
                 )}
-              </MyContext.Consumer>
+                {loading && <span>Submiting</span>}
+                {!loading && <span>Submit</span>}
+              </Button>
+
+              {/* </>
+                )}
+              </MyContext.Consumer> */}
             </DialogActions>
           </Dialog>
         </div>
@@ -307,6 +305,7 @@ AddDialog.propTypes = {
   open: PropTypes.bool,
   onClose: PropTypes.func,
   onSubmit: PropTypes.func,
+  loading: PropTypes.bool.isRequired,
 };
 
 AddDialog.defaultProps = {
