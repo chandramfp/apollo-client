@@ -17,6 +17,7 @@ import RemoveDialog from '../../components/RemoveDialog/RemoveDialog';
 import { MyContext } from '../../contexts';
 import { GET_TRAINEE } from './query';
 import { CREATE_TRAINEE, UPDATE_TRAINEE, DELETE_TRAINEE } from './mutation';
+import { UPDATED_TRAINEE_SUB, DELETED_TRAINEE_SUB } from './subscription';
 
 const useStyles = (theme) => ({
   root: {
@@ -39,7 +40,7 @@ class Trainee extends Component {
       edata: {},
       deleteData: {},
       page: 0,
-      rowsPerPage: 802,
+      rowsPerPage: 20,
       // rowData: [],
       // loading: false,
       // count: 0,
@@ -51,6 +52,56 @@ class Trainee extends Component {
   // componentDidMount = () => {
   //   this.handleTable(0);
   // }
+
+  componentDidMount = () => {
+    const { data: { subscribeToMore } } = this.props;
+    subscribeToMore({
+      document: UPDATED_TRAINEE_SUB,
+      updateQuery: (prev, { subscriptionData }) => {
+        if (!subscriptionData) return prev;
+        const { getTrainee: { records } } = prev;
+        const { data: { traineeUpdated } } = subscriptionData;
+        const updatedRecords = [...records].map((record) => {
+          if (record.originalId === traineeUpdated.originalId) {
+            return {
+              ...record,
+              ...traineeUpdated,
+            };
+          }
+          return record;
+        });
+        return {
+          getTrainee: {
+            ...prev.getTrainee,
+            ...prev.getTrainee.count - 1,
+            records: updatedRecords,
+          },
+        };
+      },
+    });
+    subscribeToMore({
+      document: DELETED_TRAINEE_SUB,
+      updateQuery: (prev, { subscriptionData }) => {
+        if (!subscriptionData) return prev;
+        const {
+          getTrainee: { records, count },
+        } = prev;
+        const {
+          data: { traineeDeleted },
+        } = subscriptionData;
+        const updateRecords = [...records].filter(
+          (record) => traineeDeleted !== record.originalId,
+        );
+        return {
+          getTrainee: {
+            ...prev.getTrainee,
+            count: count - 1,
+            records: updateRecords,
+          },
+        };
+      },
+    });
+  }
 
   openDialog = (status) => {
     this.setState({ open: status });
@@ -110,7 +161,7 @@ class Trainee extends Component {
     const { page, rowsPerPage } = this.state;
     const {
       data: {
-        getTrainee: { count = 0 } = {},
+        getTrainee: { count = 0, records } = {},
         refetch,
       },
     } = this.props;
@@ -123,11 +174,17 @@ class Trainee extends Component {
         RemoveOpen: false,
       }, () => { const { message } = this.state; openSnackBar(message, 'success'); });
     }
-    if (count - page * rowsPerPage === 1 && page > 0) {
-      this.setState({
-        page: page - 1,
-      });
+    // if (count - page * rowsPerPage === 1 && page > 0) {
+    //   this.setState({
+    //     page: page - 1,
+    //   });
+    //   refetch({ skip: (page - 1) * rowsPerPage, limit: rowsPerPage });
+    // }
+    if (records.length === 1 && page > 0) {
+      this.setState({ page: page - 1 });
       refetch({ skip: (page - 1) * rowsPerPage, limit: rowsPerPage });
+    } else if (records.length === 1 && page === 0 && count > 0) {
+      refetch({ skip: (page) * rowsPerPage, limit: rowsPerPage });
     }
   };
 
@@ -171,13 +228,12 @@ class Trainee extends Component {
 
     const variables = { skip: rowsPerPage * page, limit: rowsPerPage };
     return (
-      <Mutation mutation={DELETE_TRAINEE} refetchQueries={[{ query: GET_TRAINEE, variables }]}>
+      <Mutation mutation={DELETE_TRAINEE}>
         {(deleteTrainee, loaderDelete = { loading }) => (
           <Mutation mutation={CREATE_TRAINEE} refetchQueries={[{ query: GET_TRAINEE, variables }]}>
             {(createTrainee, loaderCreate = { loading }) => (
               <Mutation
                 mutation={UPDATE_TRAINEE}
-                refetchQueries={[{ query: GET_TRAINEE, variables }]}
               >
                 {(updateTrainee, loaderUpdate = { loading }) => (
                   <MyContext.Consumer>
@@ -301,7 +357,7 @@ export default Compose(
   withStyles(useStyles),
   graphql(GET_TRAINEE, {
     options: {
-      variables: { skip: 0, limit: 802 },
+      variables: { skip: 0, limit: 20 },
     },
   }),
 )(Trainee);
